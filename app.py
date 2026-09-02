@@ -45,6 +45,16 @@ def remaining_loan_balance(loan_amount, annual_rate, amort_years, years_elapsed)
 # Sidebar inputs
 # ---------------------------------------------------------------------------
 
+def format_money(value):
+    """Shorthand dollar formatting so KPI tiles never overflow -- $1.75M instead
+    of $1,750,000, which was getting cut off with "..." in narrower windows."""
+    if abs(value) >= 1_000_000:
+        return f"${value / 1_000_000:.2f}M"
+    if abs(value) >= 1_000:
+        return f"${value / 1_000:.0f}K"
+    return f"${value:,.0f}"
+
+
 st.sidebar.header("Deal Inputs")
 
 purchase_price = st.sidebar.number_input("Purchase Price ($)", min_value=100_000, value=5_000_000, step=50_000)
@@ -83,7 +93,7 @@ col1, col2, col3, col4 = st.columns(4)
 col1.metric("Going-in Cap Rate", f"{going_in_cap_rate * 100:.2f}%")
 col2.metric("Year 1 DSCR", f"{dscr:.2f}x", delta_color="off")
 col3.metric("Year 1 Cash-on-Cash", f"{cash_on_cash * 100:.2f}%")
-col4.metric("Equity Invested", f"${equity_invested:,.0f}")
+col4.metric("Equity Invested", format_money(equity_invested))
 
 if dscr < 1.20:
     st.warning(
@@ -124,7 +134,7 @@ st.header("📈 Hold-Period Returns")
 col1, col2, col3 = st.columns(3)
 col1.metric("Levered IRR", f"{irr * 100:.1f}%" if irr is not None else "n/a")
 col2.metric("Equity Multiple", f"{equity_multiple:.2f}x")
-col3.metric("Exit Value", f"${exit_value:,.0f}")
+col3.metric("Exit Value", format_money(exit_value))
 
 st.dataframe(
     proforma,
