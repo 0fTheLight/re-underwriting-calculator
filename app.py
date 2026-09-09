@@ -50,7 +50,7 @@ st.markdown(
     html, body, [class*="css"],
     .stApp, .stApp p, .stApp label, .stApp li,
     .hero-eyebrow, .hero-title, .hero-caption, .section-title, .section-caption,
-    .card-label, .card-value, .card-badge, .sidebar-byline {{
+    .card-label, .card-value, .card-badge, .sidebar-byline, .sidebar-subline {{
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }}
     [data-testid="stIconMaterial"] {{ font-family: 'Material Symbols Rounded' !important; }}
@@ -87,8 +87,11 @@ st.markdown(
 
     .sidebar-byline {{
         color: #{MUTED}; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.03em;
-        text-transform: uppercase; margin: 0 0 1rem 0; padding-bottom: 0.85rem;
-        border-bottom: 1px solid #{LINE};
+        text-transform: uppercase; margin: 0 0 0.2rem 0;
+    }}
+    .sidebar-subline {{
+        color: #{MUTED}; font-size: 0.74rem; font-weight: 400; letter-spacing: 0.01em;
+        margin: 0 0 1rem 0; padding-bottom: 0.85rem; border-bottom: 1px solid #{LINE};
     }}
     </style>
     """,
@@ -200,7 +203,11 @@ hero(
 # Sidebar inputs
 # ---------------------------------------------------------------------------
 
-st.sidebar.markdown('<div class="sidebar-byline">Prepared by Diesel De Luz</div>', unsafe_allow_html=True)
+st.sidebar.markdown(
+    '<div class="sidebar-byline">Prepared by Diesel De Luz</div>'
+    '<div class="sidebar-subline">Economics Graduate \'25 | University of Colorado Boulder</div>',
+    unsafe_allow_html=True,
+)
 st.sidebar.header("Deal Inputs")
 
 purchase_price = st.sidebar.number_input("Purchase Price ($)", min_value=100_000, value=5_000_000, step=50_000)
