@@ -4,6 +4,7 @@ from datetime import date
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -33,6 +34,7 @@ INK = "1F2430"        # primary text
 MUTED = "6B7280"      # secondary text
 LINE = "E3E6EA"       # borders / dividers
 ACCENT = "3B5BA3"     # single structural accent (headers, dividers, buttons)
+ACCENT_LIGHT = "A9BAD9"  # lighter tint of the accent, used only to break out one-time sale proceeds on the cash flow chart
 GOOD = "1E8E5A"
 GOOD_BG = "E8F5EE"
 WARN = "B7791F"
@@ -308,7 +310,31 @@ st.dataframe(
     width="stretch",
 )
 
-st.line_chart(proforma, x="Year", y="Cash Flow", color=f"#{ACCENT}")
+sale_proceeds_by_year = [0.0] * (len(years) - 1) + [net_sale_proceeds]
+
+cash_flow_fig = go.Figure()
+cash_flow_fig.add_bar(
+    x=years, y=cash_flow_by_year, name="Operating Cash Flow",
+    marker_color=f"#{ACCENT}", hovertemplate="Year %{x}<br>Operating: %{y:$,.0f}<extra></extra>",
+)
+cash_flow_fig.add_bar(
+    x=years, y=sale_proceeds_by_year, name="Net Sale Proceeds",
+    marker_color=f"#{ACCENT_LIGHT}", hovertemplate="Year %{x}<br>Sale Proceeds: %{y:$,.0f}<extra></extra>",
+)
+cash_flow_fig.update_layout(
+    barmode="stack",
+    template="plotly_white",
+    font=dict(family="Inter, -apple-system, sans-serif", color=f"#{INK}", size=13),
+    xaxis=dict(title="Year", tickmode="linear", dtick=1, showgrid=False),
+    yaxis=dict(title=None, showgrid=True, gridcolor=f"#{LINE}", tickformat="$,.0f", zeroline=False),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None),
+    margin=dict(l=10, r=10, t=10, b=10),
+    height=340,
+    hovermode="x unified",
+    plot_bgcolor="white",
+    paper_bgcolor="white",
+)
+st.plotly_chart(cash_flow_fig, config={"displayModeBar": False})
 
 # ---------------------------------------------------------------------------
 # Per square foot

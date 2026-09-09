@@ -3,5 +3,6 @@ pandas
 numpy
 numpy_financial
 matplotlib
+plotly
 openpyxl
 reportlab
