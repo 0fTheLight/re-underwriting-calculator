@@ -3,3 +3,5 @@ pandas
 numpy
 numpy_financial
 matplotlib
+openpyxl
+reportlab
