@@ -50,7 +50,7 @@ st.markdown(
     html, body, [class*="css"],
     .stApp, .stApp p, .stApp label, .stApp li,
     .hero-eyebrow, .hero-title, .hero-caption, .section-title, .section-caption,
-    .card-label, .card-value, .card-badge {{
+    .card-label, .card-value, .card-badge, .sidebar-byline {{
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }}
     [data-testid="stIconMaterial"] {{ font-family: 'Material Symbols Rounded' !important; }}
@@ -84,6 +84,12 @@ st.markdown(
 
     .stDownloadButton button {{ background: #{INK}; color: #fff; border: none; border-radius: 8px; font-weight: 600; padding: 0.55rem 1.15rem; }}
     .stDownloadButton button:hover {{ background: #{ACCENT}; color: #fff; }}
+
+    .sidebar-byline {{
+        color: #{MUTED}; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.03em;
+        text-transform: uppercase; margin: 0 0 1rem 0; padding-bottom: 0.85rem;
+        border-bottom: 1px solid #{LINE};
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -194,6 +200,7 @@ hero(
 # Sidebar inputs
 # ---------------------------------------------------------------------------
 
+st.sidebar.markdown('<div class="sidebar-byline">Prepared by Diesel De Luz</div>', unsafe_allow_html=True)
 st.sidebar.header("Deal Inputs")
 
 purchase_price = st.sidebar.number_input("Purchase Price ($)", min_value=100_000, value=5_000_000, step=50_000)
