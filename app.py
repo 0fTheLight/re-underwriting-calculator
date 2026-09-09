@@ -237,6 +237,18 @@ noi_psf = year1_noi / square_footage if square_footage else None
 
 section("Deal Snapshot")
 
+with st.expander("New to underwriting? What this section means"):
+    st.markdown(
+        "This is the first gut check on a deal, before financing or hold-period assumptions "
+        "come into play. **Going-in cap rate** tells you the return the property would throw "
+        "off in year one if you paid all cash -- higher generally means more income relative "
+        "to price. **Year 1 DSCR** asks a different question: once you add a loan, does the "
+        "property's income cover the loan payment with room to spare? Lenders live and die by "
+        "this number. **Year 1 cash-on-cash return** is the actual cash you'd pocket this year "
+        "for every dollar you personally invested, after the mortgage payment. **Equity invested** "
+        "is simply your out-of-pocket check -- purchase price minus whatever the bank is lending."
+    )
+
 dscr_status = status_for(dscr, 1.25, 1.00)
 coc_status = status_for(cash_on_cash * 100, 8, 0)
 
@@ -287,6 +299,18 @@ section(
     "Hold-Period Returns",
     "Full multi-year cash flow projection plus the levered IRR and equity multiple across your assumed hold period.",
 )
+
+with st.expander("New to underwriting? What this section means"):
+    st.markdown(
+        "Deals aren't judged on year one alone -- most investors buy planning to hold for "
+        "several years and then sell. This section runs the whole holding period forward: NOI "
+        "grows each year, cash flow builds after the mortgage payment, and in the final year the "
+        "model adds what you'd walk away with from selling the property (its exit value, minus "
+        "selling costs and whatever's left on the loan). **Levered IRR** is the annualized return "
+        "across that entire timeline, accounting for when money went in and when it came back. "
+        "**Equity multiple** is simpler: total dollars back divided by dollars invested -- a 2.0x "
+        "means you doubled your money over the hold period."
+    )
 
 irr_pct = irr * 100 if irr is not None else None
 irr_status = status_for(irr_pct, 15, 8) if irr_pct is not None else None
@@ -362,6 +386,15 @@ section(
     "The same deal viewed on a price-per-square-foot basis -- the way most brokers and appraisers quote a market comp.",
 )
 
+with st.expander("New to underwriting? What this section means"):
+    st.markdown(
+        "Purchase price alone doesn't tell you if a deal is cheap or expensive -- a $5M property "
+        "could be a great deal or a bad one depending on its size. Real estate professionals "
+        "normalize for this by dividing key numbers by square footage, the same way home shoppers "
+        "compare price per square foot. It lets you compare this deal against other listings or "
+        "recent sales on an apples-to-apples basis, no matter how big either property is."
+    )
+
 if square_footage:
     render_cards([
         {"label": "Purchase Price / SF", "value": format_psf(purchase_price_psf)},
@@ -381,6 +414,17 @@ section(
     "How the deal's IRR shifts under different exit cap rate and NOI growth assumptions -- the same "
     "kind of sensitivity table used to stress-test a deal before committing capital.",
 )
+
+
+with st.expander("New to underwriting? What this section means"):
+    st.markdown(
+        "Every underwriting model rests on assumptions about the future -- and the two hardest "
+        "to predict are what cap rate the market will demand when you sell, and how fast rents "
+        "will grow along the way. This table reruns the entire IRR calculation across a range of "
+        "both, so instead of one single return number, you can see how the deal performs across "
+        "a more optimistic and a more pessimistic future. A deal that still looks solid across "
+        "most of this grid is more resilient than one that only works if everything goes right."
+    )
 
 
 def irr_for(exit_cap, growth):
