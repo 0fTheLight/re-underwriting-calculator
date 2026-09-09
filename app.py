@@ -310,23 +310,33 @@ st.dataframe(
     width="stretch",
 )
 
-sale_proceeds_by_year = [0.0] * (len(years) - 1) + [net_sale_proceeds]
-
 cash_flow_fig = go.Figure()
 cash_flow_fig.add_bar(
     x=years, y=cash_flow_by_year, name="Operating Cash Flow",
-    marker_color=f"#{ACCENT}", hovertemplate="Year %{x}<br>Operating: %{y:$,.0f}<extra></extra>",
+    marker_color=f"#{ACCENT}", yaxis="y1",
+    hovertemplate="Year %{x}<br>Operating: %{y:$,.0f}<extra></extra>",
 )
 cash_flow_fig.add_bar(
-    x=years, y=sale_proceeds_by_year, name="Net Sale Proceeds",
-    marker_color=f"#{ACCENT_LIGHT}", hovertemplate="Year %{x}<br>Sale Proceeds: %{y:$,.0f}<extra></extra>",
+    x=[years[-1]], y=[net_sale_proceeds], name="Net Sale Proceeds (exit year)",
+    marker_color=f"#{ACCENT_LIGHT}", yaxis="y2",
+    hovertemplate="Year %{x}<br>Sale Proceeds: %{y:$,.0f}<extra></extra>",
 )
 cash_flow_fig.update_layout(
-    barmode="stack",
+    barmode="group",
+    bargap=0.3,
     template="plotly_white",
     font=dict(family="Inter, -apple-system, sans-serif", color=f"#{INK}", size=13),
     xaxis=dict(title="Year", tickmode="linear", dtick=1, showgrid=False),
-    yaxis=dict(title=None, showgrid=True, gridcolor=f"#{LINE}", tickformat="$,.0f", zeroline=False),
+    yaxis=dict(
+        title=dict(text="Operating Cash Flow", font=dict(color=f"#{ACCENT}", size=12)),
+        tickfont=dict(color=f"#{ACCENT}"),
+        showgrid=True, gridcolor=f"#{LINE}", tickformat="$,.0f", zeroline=False,
+    ),
+    yaxis2=dict(
+        title=dict(text="Sale Proceeds", font=dict(color=f"#{ACCENT_LIGHT}", size=12)),
+        tickfont=dict(color=f"#{ACCENT_LIGHT}"),
+        overlaying="y", side="right", showgrid=False, tickformat="$,.0f", zeroline=False,
+    ),
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None),
     margin=dict(l=10, r=10, t=10, b=10),
     height=340,
@@ -335,6 +345,12 @@ cash_flow_fig.update_layout(
     paper_bgcolor="white",
 )
 st.plotly_chart(cash_flow_fig, config={"displayModeBar": False})
+st.caption(
+    "Two separate scales -- operating cash flow (left axis) is measured in the "
+    "tens of thousands, while the one-time sale proceeds (right axis) run into "
+    "the millions. Splitting the axes keeps Years 1-4 readable instead of "
+    "flattening them next to the exit-year payout."
+)
 
 # ---------------------------------------------------------------------------
 # Per square foot
