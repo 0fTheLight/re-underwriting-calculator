@@ -55,7 +55,7 @@ st.markdown(
     }}
     [data-testid="stIconMaterial"] {{ font-family: 'Material Symbols Rounded' !important; }}
     #MainMenu, footer {{ visibility: hidden; }}
-    .block-container {{ padding-top: 2.2rem; max-width: 1100px; }}
+    .block-container {{ padding-top: 4rem; max-width: 1100px; }}
 
     .hero-eyebrow {{
         color: #{ACCENT}; font-weight: 700; font-size: 0.76rem; letter-spacing: 0.1em;
