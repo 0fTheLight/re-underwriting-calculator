@@ -1,12 +1,18 @@
 import io
 from datetime import date
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.formatting.rule import ColorScaleRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
@@ -14,6 +20,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import (
+    Image,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -490,6 +497,77 @@ with st.expander("How these numbers are calculated"):
 # ---------------------------------------------------------------------------
 
 
+def render_cash_flow_chart_png():
+    """Matplotlib version of the in-app dual-axis cash flow chart, for the PDF export."""
+    fig, ax1 = plt.subplots(figsize=(6.4, 2.7), dpi=200)
+    ax2 = ax1.twinx()
+
+    ax1.bar(years, cash_flow_by_year, width=0.6, color=f"#{ACCENT}", label="Operating Cash Flow", zorder=3)
+    ax2.bar([years[-1]], [net_sale_proceeds], width=0.3, color=f"#{ACCENT_LIGHT}",
+            label="Net Sale Proceeds (exit year)", zorder=3)
+
+    ax1.set_xlabel("Year", fontsize=9, color=f"#{INK}")
+    ax1.set_ylabel("Operating Cash Flow", fontsize=8.5, color=f"#{ACCENT}")
+    ax2.set_ylabel("Sale Proceeds", fontsize=8.5, color="#8CA0C8")
+    ax1.tick_params(axis="y", labelcolor=f"#{ACCENT}", labelsize=8)
+    ax2.tick_params(axis="y", labelcolor="#8CA0C8", labelsize=8)
+    ax1.tick_params(axis="x", labelsize=8, colors=f"#{INK}")
+    ax1.set_xticks(years)
+    ax1.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"${v:,.0f}"))
+    ax2.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"${v:,.0f}"))
+    ax1.spines["top"].set_visible(False)
+    ax2.spines["top"].set_visible(False)
+    ax1.set_axisbelow(True)
+    ax1.grid(axis="y", color=f"#{LINE}", linewidth=0.7)
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(
+        lines1 + lines2, labels1 + labels2, loc="upper center", bbox_to_anchor=(0.5, 1.22),
+        ncol=2, fontsize=8, frameon=False,
+    )
+
+    fig.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    return buf
+
+
+def render_sensitivity_heatmap_png():
+    """Matplotlib version of the in-app sensitivity heatmap, for the PDF export."""
+    data = sensitivity.to_numpy(dtype=float)
+    cmap = plt.get_cmap("RdYlGn")
+    norm = plt.Normalize(vmin=data.min(), vmax=data.max())
+
+    fig, ax = plt.subplots(figsize=(6.4, 2.6), dpi=200)
+    ax.imshow(data, cmap=cmap, norm=norm, aspect="auto")
+    ax.set_xticks(range(len(sensitivity.columns)))
+    ax.set_xticklabels(sensitivity.columns, fontsize=7.5, color=f"#{INK}")
+    ax.set_yticks(range(len(sensitivity.index)))
+    ax.set_yticklabels(sensitivity.index, fontsize=7.5, color=f"#{INK}")
+    ax.set_xlabel("NOI Growth Rate", fontsize=8.5, color=f"#{INK}")
+    ax.set_ylabel("Exit Cap Rate", fontsize=8.5, color=f"#{INK}")
+
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            r, g, b, _ = cmap(norm(data[i, j]))
+            luminance = 0.299 * r + 0.587 * g + 0.114 * b
+            text_color = "white" if luminance < 0.5 else f"#{INK}"
+            ax.text(j, i, f"{data[i, j] * 100:.1f}%", ha="center", va="center", fontsize=7.5, color=text_color)
+
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    fig.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    return buf
+
+
 def build_excel_workbook():
     wb = Workbook()
     ws = wb.active
@@ -603,10 +681,10 @@ def build_excel_workbook():
     value_cell(row, 2, f"=IF(B{r_sf}=0,\"\",B{r_noi}/B{r_sf})", money2_fmt)
 
     row += 2
-    set_header(f"A{row}:E{row}", "Hold-Period Proforma")
+    set_header(f"A{row}:F{row}", "Hold-Period Proforma")
     row += 1
     hdr_row = row
-    for i, h in enumerate(["Year", "NOI", "Debt Service", "Cash Flow"]):
+    for i, h in enumerate(["Year", "NOI", "Debt Service", "Cash Flow", "Operating CF", "Sale Proceeds"]):
         c = ws.cell(row=hdr_row, column=1 + i, value=h)
         c.font = Font(bold=True, color=INK)
         c.fill = section_fill
@@ -629,6 +707,8 @@ def build_excel_workbook():
         value_cell(row, 2, noi_formula, money_fmt)
         value_cell(row, 3, f"=$B${r_ds}", money_fmt)
         value_cell(row, 4, f"=B{row}-C{row}", money_fmt)
+        value_cell(row, 5, f"=B{row}-C{row}", money_fmt)
+        value_cell(row, 6, 0, money_fmt)
         row += 1
     last_data_row = row - 1
 
@@ -662,8 +742,10 @@ def build_excel_workbook():
     label_cell(row, "Net Sale Proceeds")
     value_cell(row, 2, f"=B{r_exit_val}-B{r_sellcosts}-B{r_payoff}", money_fmt)
 
-    # Fold net sale proceeds into the final proforma year's cash flow
+    # Fold net sale proceeds into the final proforma year's cash flow, and break it out
+    # separately in the Sale Proceeds column so the chart below can stack it distinctly.
     ws.cell(row=last_data_row, column=4).value = f"=B{last_data_row}-C{last_data_row}+B{r_proceeds}"
+    ws.cell(row=last_data_row, column=6).value = f"=B{r_proceeds}"
 
     row += 2
     set_header(f"A{row}:B{row}", "Levered Returns")
@@ -677,6 +759,67 @@ def build_excel_workbook():
     label_cell(row, "Equity Multiple")
     cf_range = f"D{first_data_row}:D{last_data_row}"
     value_cell(row, 2, f"=SUM({cf_range})/B{r_equity}", mult_fmt)
+
+    # Native Excel chart of the year-by-year operating cash flow -- stays live, since it
+    # points at the same formula-driven Operating CF column above. Excel's cross-platform
+    # support for combo charts with a secondary axis is unreliable (dual-axis bar+bar and
+    # bar+line combos both rendered with overlapping, unreadable axis labels when tested),
+    # so rather than ship something that might not display correctly for you, this chart
+    # sticks to Operating CF alone at full resolution. Net Sale Proceeds is a live formula
+    # cell right above -- see the app or the PDF export for the combined dual-scale chart.
+    chart_cats = Reference(ws, min_col=1, min_row=first_data_row, max_row=last_data_row)
+
+    chart = BarChart()
+    chart.type = "col"
+    chart.title = "Hold-Period Operating Cash Flow"
+    chart.y_axis.title = "Operating Cash Flow ($)"
+    chart.x_axis.title = "Year"
+    chart.height = 8
+    chart.width = 17
+    chart_data = Reference(ws, min_col=5, max_col=5, min_row=hdr_row, max_row=last_data_row)
+    chart.add_data(chart_data, titles_from_data=True)
+    chart.set_categories(chart_cats)
+    chart.series[0].graphicalProperties.solidFill = ACCENT
+    chart.legend = None
+    ws.add_chart(chart, f"H{hdr_row}")
+
+    row += 3
+    set_header(f"A{row}:F{row}", "Sensitivity Analysis: Levered IRR (calculated at export)")
+    row += 1
+    sens_hdr_row = row
+    ws.cell(row=sens_hdr_row, column=1, value="Exit Cap \\ NOI Growth").font = Font(bold=True, color=INK)
+    ws.cell(row=sens_hdr_row, column=1).fill = section_fill
+    ws.cell(row=sens_hdr_row, column=1).border = border
+    for j, col_label in enumerate(sensitivity.columns):
+        c = ws.cell(row=sens_hdr_row, column=2 + j, value=col_label)
+        c.font = Font(bold=True, color=INK)
+        c.fill = section_fill
+        c.border = border
+    row += 1
+    sens_first_row = row
+    for i, row_label in enumerate(sensitivity.index):
+        c = ws.cell(row=row, column=1, value=row_label)
+        c.font = Font(bold=True, color=INK)
+        c.border = border
+        for j, col_label in enumerate(sensitivity.columns):
+            value_cell(row, 2 + j, float(sensitivity.iloc[i, j]), pct_fmt)
+        row += 1
+    sens_last_row = row - 1
+    sens_last_col = get_column_letter(1 + len(sensitivity.columns))
+    sens_range = f"B{sens_first_row}:{sens_last_col}{sens_last_row}"
+    ws.conditional_formatting.add(
+        sens_range,
+        ColorScaleRule(
+            start_type="min", start_color=f"FF{BAD}",
+            mid_type="percentile", mid_value=50, mid_color="FFFFEB84",
+            end_type="max", end_color=f"FF{GOOD}",
+        ),
+    )
+    row += 1
+    ws.cell(
+        row=row, column=1,
+        value="Snapshot as of export -- re-download after changing inputs to refresh this grid.",
+    ).font = Font(italic=True, color=MUTED, size=9)
 
     ws.freeze_panes = "A2"
     return wb
@@ -698,7 +841,11 @@ with col_xlsx:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         width="stretch",
     )
-    st.caption("Every downstream cell is a live formula -- change an input in Excel and the model recalculates.")
+    st.caption(
+        "Every downstream cell -- including the cash flow chart -- is a live formula "
+        "that recalculates when you change an input in Excel. The sensitivity grid is "
+        "a snapshot as of export."
+    )
 
 
 def build_pdf_report():
@@ -815,6 +962,19 @@ def build_pdf_report():
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
     story.append(t4)
+
+    story.append(Paragraph("Hold-Period Cash Flow", styles["h2"]))
+    cash_flow_png = render_cash_flow_chart_png()
+    cf_img_width = 6.6 * inch
+    cf_img_height = cf_img_width * (2.7 / 6.4)
+    story.append(Image(cash_flow_png, width=cf_img_width, height=cf_img_height))
+
+    story.append(Paragraph("Sensitivity Analysis: Levered IRR", styles["h2"]))
+    heatmap_png = render_sensitivity_heatmap_png()
+    hm_img_width = 6.6 * inch
+    hm_img_height = hm_img_width * (2.6 / 6.4)
+    story.append(Image(heatmap_png, width=hm_img_width, height=hm_img_height))
+
     story.append(Spacer(1, 10))
     story.append(Paragraph(
         "Generated by the Real Estate Deal Underwriting Calculator -- re-underwriting-calculator.streamlit.app",
@@ -834,4 +994,7 @@ with col_pdf:
         mime="application/pdf",
         width="stretch",
     )
-    st.caption("A clean, formatted one-page summary of the deal assumptions, key metrics, and proforma.")
+    st.caption(
+        "A clean, formatted summary of the deal assumptions, key metrics, proforma, "
+        "cash flow chart, and sensitivity grid."
+    )
