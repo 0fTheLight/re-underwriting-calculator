@@ -99,9 +99,10 @@ st.markdown(
 )
 
 
-def hero(eyebrow, title, caption):
+def hero(title, caption, eyebrow=None):
+    eyebrow_html = f'<div class="hero-eyebrow">{eyebrow}</div>' if eyebrow else ""
     st.markdown(
-        f'<div class="hero-eyebrow">{eyebrow}</div>'
+        f'{eyebrow_html}'
         f'<div class="hero-title">{title}</div>'
         f'<div class="hero-caption">{caption}</div>'
         f'<div class="hero-divider"></div>',
@@ -193,7 +194,6 @@ def remaining_loan_balance(loan_amount, annual_rate, amort_years, years_elapsed)
 # ---------------------------------------------------------------------------
 
 hero(
-    "Commercial Real Estate",
     "Real Estate Deal Underwriting Calculator",
     "Enter a deal's basic numbers to see its cap rate, DSCR, cash-on-cash return, and a full "
     "multi-year levered IRR -- the same math behind a typical acquisition underwriting model.",
